@@ -5,10 +5,15 @@ import liff from "@line/liff";
 
 type Status = "loading" | "ready" | "error";
 
+type User = {
+  display_name: string | null;
+  picture_url: string | null;
+  plan: string;
+};
+
 export default function Home() {
   const [status, setStatus] = useState<Status>("loading");
-  const [name, setName] = useState<string>("");
-  const [picture, setPicture] = useState<string>("");
+  const [user, setUser] = useState<User | null>(null);
   const [message, setMessage] = useState<string>("");
 
   useEffect(() => {
@@ -23,7 +28,6 @@ export default function Home() {
 
         await liff.init({ liffId });
 
-        // LINE外（PCブラウザ等）ではミニアプリは正しく動かない
         if (!liff.isInClient()) {
           setStatus("error");
           setMessage("このアプリはLINEアプリ内で開いてください。");
@@ -31,17 +35,34 @@ export default function Home() {
         }
 
         if (!liff.isLoggedIn()) {
-          liff.login(); // ログイン後、自動でこのページに戻る
+          liff.login();
           return;
         }
 
-        const profile = await liff.getProfile();
-        setName(profile.displayName);
-        setPicture(profile.pictureUrl ?? "");
+        // idTokenを取得してバックエンドでログイン成立
+        const idToken = liff.getIDToken();
+        if (!idToken) throw new Error("idTokenが取得できませんでした");
+
+        const authRes = await fetch("/api/auth/line", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken }),
+        });
+        if (!authRes.ok) {
+          const err = await authRes.json().catch(() => ({}));
+          throw new Error(err.error ?? "ログインに失敗しました");
+        }
+
+        // セッションCookieが発行されたのでユーザー情報を取得
+        const meRes = await fetch("/api/me");
+        if (!meRes.ok) throw new Error("ユーザー情報の取得に失敗しました");
+
+        const me: User = await meRes.json();
+        setUser(me);
         setStatus("ready");
       } catch (e) {
         setStatus("error");
-        setMessage(`初期化に失敗しました: ${String(e)}`);
+        setMessage(`エラー: ${String(e)}`);
       }
     })();
   }, []);
@@ -50,19 +71,22 @@ export default function Home() {
     <main className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
       {status === "loading" && <p className="text-gray-500">読み込み中…</p>}
 
-      {status === "ready" && (
+      {status === "ready" && user && (
         <>
-          {picture && (
+          {user.picture_url && (
             <img
-              src={picture}
+              src={user.picture_url}
               alt=""
               className="w-20 h-20 rounded-full object-cover"
             />
           )}
-          <h1 className="text-xl font-bold">ようこそ、{name} さん 👋</h1>
+          <h1 className="text-xl font-bold">
+            ようこそ、{user.display_name} さん 👋
+          </h1>
           <p className="text-sm text-gray-500">
             たびおり へのログインに成功しました。
           </p>
+          <p className="text-xs text-gray-400">プラン: {user.plan}</p>
         </>
       )}
 
