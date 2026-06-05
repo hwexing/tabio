@@ -15,54 +15,81 @@ export default function Home() {
   const [status, setStatus] = useState<Status>("loading");
   const [user, setUser] = useState<User | null>(null);
   const [message, setMessage] = useState<string>("");
+  const [debugLines, setDebugLines] = useState<string[]>([]);
+
+  const addDebug = (line: string) => {
+    console.log("step:", line);
+    setDebugLines((prev) => [...prev, line]);
+  };
 
   useEffect(() => {
     (async () => {
       try {
+        addDebug("1. start");
+
         const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
         if (!liffId) {
           setStatus("error");
           setMessage("LIFF IDが設定されていません（NEXT_PUBLIC_LIFF_ID）。");
           return;
         }
+        addDebug("2. liffId OK");
 
         await liff.init({ liffId });
+        addDebug("3. liff.init 完了");
 
         if (!liff.isInClient()) {
           setStatus("error");
           setMessage("このアプリはLINEアプリ内で開いてください。");
           return;
         }
+        addDebug("4. isInClient OK");
 
-        if (!liff.isLoggedIn()) {
+        const loggedIn = liff.isLoggedIn();
+        addDebug(`5. isLoggedIn: ${loggedIn}`);
+
+        if (!loggedIn) {
+          addDebug("6. login() を呼びます");
           liff.login();
           return;
         }
 
-        // idTokenを取得してバックエンドでログイン成立
+        addDebug("7. getIDToken 呼び出し前");
         const idToken = liff.getIDToken();
+        addDebug(
+          `8. idToken: ${idToken === null ? "null" : `取得OK(長さ${idToken.length})`}`
+        );
+
         if (!idToken) throw new Error("idTokenが取得できませんでした");
 
+        addDebug("9. POST /api/auth/line 送信前");
         const authRes = await fetch("/api/auth/line", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ idToken }),
         });
+        addDebug(`10. /api/auth/line レスポンス: ${authRes.status}`);
+
         if (!authRes.ok) {
           const err = await authRes.json().catch(() => ({}));
           throw new Error(err.error ?? "ログインに失敗しました");
         }
 
-        // セッションCookieが発行されたのでユーザー情報を取得
+        addDebug("11. GET /api/me 送信前");
         const meRes = await fetch("/api/me");
+        addDebug(`12. /api/me レスポンス: ${meRes.status}`);
+
         if (!meRes.ok) throw new Error("ユーザー情報の取得に失敗しました");
 
         const me: User = await meRes.json();
         setUser(me);
         setStatus("ready");
+        addDebug("13. 完了");
       } catch (e) {
+        const msg = String(e);
+        addDebug(`ERROR: ${msg}`);
         setStatus("error");
-        setMessage(`エラー: ${String(e)}`);
+        setMessage(`エラー: ${msg}`);
       }
     })();
   }, []);
@@ -96,6 +123,16 @@ export default function Home() {
           <p>{message}</p>
         </div>
       )}
+
+      {/* デバッグパネル（常に表示） */}
+      <div className="mt-6 w-full max-w-sm text-left bg-gray-100 rounded p-3">
+        <p className="text-xs font-bold text-gray-500 mb-1">DEBUG</p>
+        {debugLines.map((line, i) => (
+          <p key={i} className="text-xs text-gray-700 font-mono">
+            {line}
+          </p>
+        ))}
+      </div>
     </main>
   );
 }
