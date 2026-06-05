@@ -85,6 +85,12 @@ export default function Home() {
             たびおり へのログインに成功しました。
           </p>
           <p className="text-xs text-gray-400">プラン: {user.plan}</p>
+          <a
+            href="/dev"
+            className="mt-2 text-xs text-blue-500 underline"
+          >
+            AI生成テスト（開発用）
+          </a>
         </>
       )}
 
