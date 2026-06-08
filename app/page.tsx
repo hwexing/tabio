@@ -167,7 +167,7 @@ export default function Home() {
           <div className="space-y-3">
             {trips.map((trip) => (
               <Link key={trip.id} href={`/trips/${trip.id}`} className="block">
-                <div className="bg-white rounded-2xl p-4 shadow-sm border border-purple-50 active:scale-[0.98] transition-transform">
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-purple-50 active:scale-[0.98] transition-transform">
                   <h3 className="font-bold text-[#2B2333] text-base leading-tight mb-1">
                     {trip.title}
                   </h3>

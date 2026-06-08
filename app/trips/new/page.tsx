@@ -165,7 +165,7 @@ export default function NewTripPage() {
         <h1 className="text-white font-bold text-lg">新しい旅をつくる</h1>
       </header>
 
-      <div className="px-4 py-6 pb-36 space-y-6">
+      <div className="px-4 py-6 pb-44 space-y-6">
         {/* 行き先 */}
         <div>
           <label className="block text-sm font-semibold text-[#2B2333] mb-1.5">
