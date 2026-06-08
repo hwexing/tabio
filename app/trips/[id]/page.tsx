@@ -1,0 +1,273 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  beauty: "💆",
+  shopping: "🛍️",
+  cafe: "☕",
+  food: "🍜",
+  sightseeing: "📸",
+  move: "🚇",
+  other: "📍",
+};
+
+type Spot = {
+  id: string;
+  sort_order: number;
+  start_time: string;
+  name: string;
+  category: string;
+  memo: string;
+  lat: number;
+  lng: number;
+  move_to_next: string;
+};
+
+type Day = {
+  id: string;
+  day_index: number;
+  title: string;
+  date: string | null;
+  trip_spots: Spot[];
+};
+
+type Trip = {
+  id: string;
+  title: string;
+  destination: string;
+  nights: number;
+  party_size: number;
+  start_date: string | null;
+  days: Day[];
+};
+
+type Tab = "itinerary" | "map" | "shopping";
+
+export default function TripDetailPage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const [trip, setTrip] = useState<Trip | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState<Tab>("itinerary");
+  const [activeDayIdx, setActiveDayIdx] = useState(0);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/trips/${params.id}`);
+        if (res.status === 401) { router.push("/"); return; }
+        if (!res.ok) { setError("しおりが見つかりませんでした"); setLoading(false); return; }
+        setTrip(await res.json());
+      } catch (e) {
+        setError(String(e));
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [params.id, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FAF7FF]">
+        <div
+          className="h-40"
+          style={{ background: "linear-gradient(135deg, #FF6FB5 0%, #A66BFF 50%, #7B61FF 100%)" }}
+        />
+        <div className="px-4 py-6 space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-2xl p-4 animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
+              <div className="h-3 bg-gray-100 rounded w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !trip) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF7FF] px-6 text-center">
+        <p className="text-red-500 font-semibold mb-2">エラー</p>
+        <p className="text-sm text-[#2B2333]/60 mb-6">{error || "不明なエラー"}</p>
+        <button onClick={() => router.push("/")} className="text-[#A66BFF] underline text-sm">
+          ホームに戻る
+        </button>
+      </div>
+    );
+  }
+
+  const activeDay = trip.days[activeDayIdx];
+
+  return (
+    <div className="min-h-screen bg-[#FAF7FF]">
+      {/* ヘッダー */}
+      <header
+        className="px-5 pt-12 pb-6"
+        style={{ background: "linear-gradient(135deg, #FF6FB5 0%, #A66BFF 50%, #7B61FF 100%)" }}
+      >
+        <button onClick={() => router.push("/")} className="text-white/80 text-sm mb-3 flex items-center gap-1">
+          ← 一覧に戻る
+        </button>
+        <h1 className="text-white font-bold text-lg leading-snug">{trip.title}</h1>
+        <p className="text-white/80 text-sm mt-0.5">{trip.destination}</p>
+        <div className="flex gap-3 mt-2 text-white/70 text-xs">
+          <span>{trip.nights}泊{trip.nights + 1}日</span>
+          <span>{trip.party_size}人</span>
+          {trip.start_date && <span>{trip.start_date}〜</span>}
+        </div>
+      </header>
+
+      {/* タブ */}
+      <div className="flex border-b border-purple-100 bg-white sticky top-0 z-10">
+        {(["itinerary", "map", "shopping"] as Tab[]).map((tab) => {
+          const labels: Record<Tab, string> = {
+            itinerary: "旅程",
+            map: "地図",
+            shopping: "買い物",
+          };
+          const active = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className="flex-1 py-3 text-sm font-semibold relative"
+              style={{ color: active ? "#A66BFF" : "#2B2333" + "80" }}
+            >
+              {labels[tab]}
+              {active && (
+                <span
+                  className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full"
+                  style={{ background: "linear-gradient(90deg, #FF6FB5, #7B61FF)" }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* タブコンテンツ */}
+      {activeTab === "itinerary" && (
+        <div>
+          {/* 日付タブ */}
+          <div className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide">
+            {trip.days.map((day, idx) => {
+              const active = idx === activeDayIdx;
+              return (
+                <button
+                  key={day.id}
+                  onClick={() => setActiveDayIdx(idx)}
+                  className="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold border transition-all"
+                  style={
+                    active
+                      ? {
+                          background: "linear-gradient(135deg, #FF6FB5 0%, #7B61FF 100%)",
+                          color: "white",
+                          borderColor: "transparent",
+                        }
+                      : {
+                          background: "white",
+                          color: "#2B2333",
+                          borderColor: "#E8E0F5",
+                        }
+                  }
+                >
+                  Day{day.day_index}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* デイタイトル */}
+          {activeDay && (
+            <div className="px-4 mb-3">
+              <h2 className="font-bold text-[#2B2333] text-base">{activeDay.title}</h2>
+              {activeDay.date && (
+                <p className="text-xs text-[#2B2333]/40 mt-0.5">{activeDay.date}</p>
+              )}
+            </div>
+          )}
+
+          {/* タイムライン */}
+          <div className="px-4 pb-10">
+            {!activeDay || activeDay.trip_spots.length === 0 ? (
+              <p className="text-center text-[#2B2333]/40 text-sm py-10">
+                スポットがありません
+              </p>
+            ) : (
+              <div className="relative">
+                {/* 縦ライン */}
+                <div
+                  className="absolute left-5 top-3 bottom-3 w-0.5 rounded-full"
+                  style={{ background: "linear-gradient(180deg, #FF6FB5, #7B61FF)" }}
+                />
+                <div className="space-y-0">
+                  {activeDay.trip_spots.map((spot, i) => (
+                    <div key={spot.id}>
+                      <div className="flex gap-4 items-start">
+                        {/* ドット */}
+                        <div className="flex-shrink-0 flex flex-col items-center" style={{ width: 40 }}>
+                          <div
+                            className="w-3 h-3 rounded-full border-2 border-white mt-1 z-10 relative"
+                            style={{ background: "linear-gradient(135deg, #FF6FB5, #7B61FF)" }}
+                          />
+                        </div>
+                        {/* カード */}
+                        <div className="flex-1 bg-white rounded-2xl p-3.5 shadow-sm border border-purple-50 mb-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs text-[#2B2333]/40 font-mono">
+                              {spot.start_time}
+                            </span>
+                            <span className="text-base leading-none">
+                              {CATEGORY_EMOJI[spot.category] ?? "📍"}
+                            </span>
+                          </div>
+                          <p className="font-bold text-[#2B2333] text-sm leading-tight">
+                            {spot.name}
+                          </p>
+                          {spot.memo && (
+                            <p className="text-xs text-[#2B2333]/60 mt-1 leading-snug">
+                              {spot.memo}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {/* 移動メモ */}
+                      {spot.move_to_next && i < activeDay.trip_spots.length - 1 && (
+                        <div className="flex gap-4 items-center mb-1">
+                          <div style={{ width: 40 }} className="flex-shrink-0" />
+                          <p className="text-xs text-[#2B2333]/40 py-1">
+                            〜 {spot.move_to_next} 〜
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === "map" && (
+        <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+          <p className="text-5xl mb-4">🗺️</p>
+          <p className="font-semibold text-[#2B2333] mb-1">地図は近日公開</p>
+          <p className="text-sm text-[#2B2333]/50">スポットの地図表示を準備中です</p>
+        </div>
+      )}
+
+      {activeTab === "shopping" && (
+        <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+          <p className="text-5xl mb-4">🛍️</p>
+          <p className="font-semibold text-[#2B2333] mb-1">買いたいものリストは近日公開</p>
+          <p className="text-sm text-[#2B2333]/50">持ち物・お土産リスト機能を準備中です</p>
+        </div>
+      )}
+    </div>
+  );
+}
