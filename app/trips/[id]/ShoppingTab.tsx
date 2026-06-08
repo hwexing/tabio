@@ -24,7 +24,7 @@ type ModalState =
   | { mode: "add" }
   | { mode: "edit"; item: ShoppingItem };
 
-export default function ShoppingTab({ tripId }: { tripId: string }) {
+export default function ShoppingTab({ tripId, isOwner }: { tripId: string; isOwner: boolean }) {
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -182,15 +182,17 @@ export default function ShoppingTab({ tripId }: { tripId: string }) {
           <p className="text-sm text-[#2B2333]/50 mb-6">
             ✨ 欲しいものを追加してみましょう
           </p>
-          <button
-            onClick={openAdd}
-            className="text-white font-bold px-6 py-3 rounded-full text-sm"
-            style={{
-              background: "linear-gradient(135deg, #FF6FB5 0%, #7B61FF 100%)",
-            }}
-          >
-            ＋ 追加する
-          </button>
+          {isOwner && (
+            <button
+              onClick={openAdd}
+              className="text-white font-bold px-6 py-3 rounded-full text-sm"
+              style={{
+                background: "linear-gradient(135deg, #FF6FB5 0%, #7B61FF 100%)",
+              }}
+            >
+              ＋ 追加する
+            </button>
+          )}
         </div>
       ) : (
         <div className="px-4 py-3 space-y-5">
@@ -251,21 +253,23 @@ export default function ShoppingTab({ tripId }: { tripId: string }) {
                         {item.name}
                       </span>
 
-                      {/* 操作ボタン */}
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => openEdit(item)}
-                          className="w-8 h-8 flex items-center justify-center text-[#A66BFF] text-base rounded-full hover:bg-purple-50"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="w-8 h-8 flex items-center justify-center text-red-300 text-base rounded-full hover:bg-red-50"
-                        >
-                          🗑️
-                        </button>
-                      </div>
+                      {/* 操作ボタン（所有者のみ） */}
+                      {isOwner && (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => openEdit(item)}
+                            className="w-8 h-8 flex items-center justify-center text-[#A66BFF] text-base rounded-full hover:bg-purple-50"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="w-8 h-8 flex items-center justify-center text-red-300 text-base rounded-full hover:bg-red-50"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -275,8 +279,8 @@ export default function ShoppingTab({ tripId }: { tripId: string }) {
         </div>
       )}
 
-      {/* 固定CTAボタン（アイテムがあるとき） */}
-      {totalCount > 0 && (
+      {/* 固定CTAボタン（所有者かつアイテムがあるとき） */}
+      {isOwner && totalCount > 0 && (
         <div className="fixed bottom-6 left-0 right-0 px-4">
           <button
             onClick={openAdd}

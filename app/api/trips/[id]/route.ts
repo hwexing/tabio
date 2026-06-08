@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { supabase } from "@/lib/supabase-server";
+import { verifyShareToken } from "@/lib/share-token";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getCurrentUser();
@@ -18,7 +19,35 @@ export async function GET(
     .single();
 
   if (error || !trip) return NextResponse.json({ error: "見つかりません" }, { status: 404 });
-  if (trip.owner_id !== user.id) return NextResponse.json({ error: "アクセス不可" }, { status: 403 });
+
+  const isOwner = trip.owner_id === user.id;
+  let hasAccess = isOwner;
+
+  if (!hasAccess) {
+    const shareToken = req.nextUrl.searchParams.get("share");
+    if (shareToken && (await verifyShareToken(shareToken, id))) {
+      hasAccess = true;
+      // viewerとして登録（以降はトークン不要）
+      await supabase
+        .from("trip_members")
+        .upsert(
+          { trip_id: id, user_id: user.id, role: "viewer" },
+          { onConflict: "trip_id,user_id" }
+        );
+    }
+  }
+
+  if (!hasAccess) {
+    const { data: membership } = await supabase
+      .from("trip_members")
+      .select("role")
+      .eq("trip_id", id)
+      .eq("user_id", user.id)
+      .single();
+    hasAccess = !!membership;
+  }
+
+  if (!hasAccess) return NextResponse.json({ error: "アクセス不可" }, { status: 403 });
 
   const { data: days, error: daysError } = await supabase
     .from("trip_days")
@@ -37,5 +66,5 @@ export async function GET(
     ),
   }));
 
-  return NextResponse.json({ ...trip, days: daysWithSortedSpots });
+  return NextResponse.json({ ...trip, days: daysWithSortedSpots, isOwner });
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import liff from "@line/liff";
 
 type LiffStatus = "loading" | "ready" | "error";
@@ -22,6 +23,7 @@ type Trip = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [liffStatus, setLiffStatus] = useState<LiffStatus>("loading");
   const [user, setUser] = useState<User | null>(null);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -68,8 +70,17 @@ export default function Home() {
         if (!meRes.ok) throw new Error("ユーザー情報の取得に失敗しました");
         const me: User = await meRes.json();
         setUser(me);
-        setLiffStatus("ready");
 
+        // 共有リンク経由のアクセス（?share=TOKEN&tripId=ID）
+        const urlParams = new URLSearchParams(window.location.search);
+        const shareParam = urlParams.get("share");
+        const tripIdParam = urlParams.get("tripId");
+        if (shareParam && tripIdParam) {
+          router.push(`/trips/${tripIdParam}?share=${encodeURIComponent(shareParam)}`);
+          return;
+        }
+
+        setLiffStatus("ready");
         setTripsLoading(true);
         const tripsRes = await fetch("/api/trips");
         if (tripsRes.ok) setTrips(await tripsRes.json());
