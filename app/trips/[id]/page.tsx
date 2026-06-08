@@ -44,6 +44,7 @@ type Trip = {
   start_date: string | null;
   days: Day[];
   isOwner: boolean;
+  canEdit: boolean;
 };
 
 type Tab = "itinerary" | "map" | "shopping";
@@ -260,7 +261,7 @@ export default function TripDetailPage() {
               disabled={copyLoading}
               className="flex-shrink-0 bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-full border border-white/30 disabled:opacity-50"
             >
-              {copyLoading ? "…" : "✨ コピー"}
+              {copyLoading ? "…" : "✨ 自分用コピー"}
             </button>
           )}
         </div>
@@ -270,7 +271,9 @@ export default function TripDetailPage() {
           <p className="text-white/90 text-xs mt-2">{shareFeedback}</p>
         )}
         {!trip.isOwner && (
-          <p className="text-white/60 text-xs mt-2">👁 閲覧モード（自分のしおりではありません）</p>
+          <p className="text-white/60 text-xs mt-2">
+            {trip.canEdit ? "✏️ 共有しおり（編集できます）" : "👁 閲覧モード"}
+          </p>
         )}
       </header>
 
@@ -379,7 +382,7 @@ export default function TripDetailPage() {
         </div>
       )}
 
-      {activeTab === "shopping" && <ShoppingTab tripId={trip.id} isOwner={trip.isOwner} />}
+      {activeTab === "shopping" && <ShoppingTab tripId={trip.id} isOwner={trip.canEdit} />}
     </div>
   );
 }

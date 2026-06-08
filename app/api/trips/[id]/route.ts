@@ -22,16 +22,18 @@ export async function GET(
 
   const isOwner = trip.owner_id === user.id;
   let hasAccess = isOwner;
+  let canEdit = isOwner;
 
   if (!hasAccess) {
     const shareToken = req.nextUrl.searchParams.get("share");
     if (shareToken && (await verifyShareToken(shareToken, id))) {
       hasAccess = true;
-      // viewerとして登録（以降はトークン不要）
+      canEdit = true;
+      // editorとして登録（以降はトークン不要）
       await supabase
         .from("trip_members")
         .upsert(
-          { trip_id: id, user_id: user.id, role: "viewer" },
+          { trip_id: id, user_id: user.id, role: "editor" },
           { onConflict: "trip_id,user_id" }
         );
     }
@@ -45,6 +47,7 @@ export async function GET(
       .eq("user_id", user.id)
       .single();
     hasAccess = !!membership;
+    canEdit = membership?.role === "editor";
   }
 
   if (!hasAccess) return NextResponse.json({ error: "アクセス不可" }, { status: 403 });
@@ -66,5 +69,5 @@ export async function GET(
     ),
   }));
 
-  return NextResponse.json({ ...trip, days: daysWithSortedSpots, isOwner });
+  return NextResponse.json({ ...trip, days: daysWithSortedSpots, isOwner, canEdit });
 }

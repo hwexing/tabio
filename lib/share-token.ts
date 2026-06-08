@@ -8,7 +8,7 @@ function getSecret() {
 }
 
 export async function createShareToken(tripId: string): Promise<string> {
-  return new SignJWT({ tripId, scope: "view" })
+  return new SignJWT({ tripId, scope: "edit" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("30d")
@@ -21,7 +21,7 @@ export async function verifyShareToken(
 ): Promise<boolean> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    return payload.scope === "view" && payload.tripId === expectedTripId;
+    return (payload.scope === "edit" || payload.scope === "view") && payload.tripId === expectedTripId;
   } catch {
     return false;
   }

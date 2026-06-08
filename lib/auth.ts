@@ -22,3 +22,22 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   if (error || !data) return null;
   return data as CurrentUser;
 }
+
+/** オーナーまたは editor メンバーなら true */
+export async function canUserEditTrip(tripId: string, userId: string): Promise<boolean> {
+  const { data: trip } = await supabase
+    .from("trips")
+    .select("owner_id")
+    .eq("id", tripId)
+    .single();
+  if (!trip) return false;
+  if (trip.owner_id === userId) return true;
+
+  const { data: member } = await supabase
+    .from("trip_members")
+    .select("role")
+    .eq("trip_id", tripId)
+    .eq("user_id", userId)
+    .single();
+  return member?.role === "editor";
+}

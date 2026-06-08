@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, canUserEditTrip } from "@/lib/auth";
 import { supabase } from "@/lib/supabase-server";
-
-async function getTripOwner(tripId: string) {
-  const { data } = await supabase
-    .from("trips")
-    .select("owner_id")
-    .eq("id", tripId)
-    .single();
-  return data?.owner_id ?? null;
-}
 
 export async function GET(
   _req: NextRequest,
@@ -19,9 +10,19 @@ export async function GET(
   if (!user) return NextResponse.json({ error: "未認証" }, { status: 401 });
 
   const { id } = await params;
-  const ownerID = await getTripOwner(id);
-  if (!ownerID) return NextResponse.json({ error: "見つかりません" }, { status: 404 });
-  if (ownerID !== user.id) return NextResponse.json({ error: "アクセス不可" }, { status: 403 });
+  if (!(await canUserEditTrip(id, user.id))) {
+    // 閲覧者（viewer）もリストは読めるよう owner_id チェックを緩める
+    const { data: trip } = await supabase.from("trips").select("owner_id").eq("id", id).single();
+    if (!trip) return NextResponse.json({ error: "見つかりません" }, { status: 404 });
+    const { data: member } = await supabase
+      .from("trip_members")
+      .select("role")
+      .eq("trip_id", id)
+      .eq("user_id", user.id)
+      .single();
+    if (trip.owner_id !== user.id && !member)
+      return NextResponse.json({ error: "アクセス不可" }, { status: 403 });
+  }
 
   const { data, error } = await supabase
     .from("shopping_items")
@@ -42,9 +43,8 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "未認証" }, { status: 401 });
 
   const { id } = await params;
-  const ownerID = await getTripOwner(id);
-  if (!ownerID) return NextResponse.json({ error: "見つかりません" }, { status: 404 });
-  if (ownerID !== user.id) return NextResponse.json({ error: "アクセス不可" }, { status: 403 });
+  if (!(await canUserEditTrip(id, user.id)))
+    return NextResponse.json({ error: "アクセス不可" }, { status: 403 });
 
   const { name, category } = await req.json();
   if (!name) return NextResponse.json({ error: "name は必須です" }, { status: 400 });
