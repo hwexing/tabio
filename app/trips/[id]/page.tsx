@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import ShoppingTab from "./ShoppingTab";
 
 const CATEGORY_EMOJI: Record<string, string> = {
   beauty: "💆",
@@ -261,13 +262,7 @@ export default function TripDetailPage() {
         </div>
       )}
 
-      {activeTab === "shopping" && (
-        <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-          <p className="text-5xl mb-4">🛍️</p>
-          <p className="font-semibold text-[#2B2333] mb-1">買いたいものリストは近日公開</p>
-          <p className="text-sm text-[#2B2333]/50">持ち物・お土産リスト機能を準備中です</p>
-        </div>
-      )}
+      {activeTab === "shopping" && <ShoppingTab tripId={trip.id} />}
     </div>
   );
 }
