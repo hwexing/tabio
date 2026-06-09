@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import ShoppingTab from "./ShoppingTab";
+import MapTab from "./MapTab";
 import liff from "@line/liff";
 
 const CATEGORY_EMOJI: Record<string, string> = {
@@ -374,13 +375,7 @@ export default function TripDetailPage() {
         </div>
       )}
 
-      {activeTab === "map" && (
-        <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-          <p className="text-5xl mb-4">🗺️</p>
-          <p className="font-semibold text-[#2B2333] mb-1">地図は近日公開</p>
-          <p className="text-sm text-[#2B2333]/50">スポットの地図表示を準備中です</p>
-        </div>
-      )}
+      {activeTab === "map" && <MapTab days={trip.days} />}
 
       {activeTab === "shopping" && <ShoppingTab tripId={trip.id} isOwner={trip.canEdit} />}
     </div>
