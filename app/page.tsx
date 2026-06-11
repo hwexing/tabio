@@ -114,26 +114,16 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#FAF7FF]">
       {/* ヘッダー */}
-      <header
-        className="px-6 pt-12 pb-8"
-        style={{
-          background: "linear-gradient(135deg, #FF6FB5 0%, #A66BFF 50%, #7B61FF 100%)",
-        }}
-      >
+      <header className="px-6 pt-12 pb-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-white text-2xl font-bold tracking-tight">
-              たびおり ✨
-            </h1>
-            <p className="text-white/80 text-sm mt-0.5">
-              {user?.display_name} さんのしおり
-            </p>
-          </div>
+          <p className="text-[#2B2333] font-semibold text-base">
+            {user?.display_name} さんのしおり
+          </p>
           {user?.picture_url && (
             <img
               src={user.picture_url}
               alt=""
-              className="w-10 h-10 rounded-full border-2 border-white/50 object-cover"
+              className="w-10 h-10 rounded-full object-cover"
             />
           )}
         </div>
